@@ -1,0 +1,89 @@
+Resize Redo logs
+====================
+
+Why we need to Do this ??
+
+a. To reduce frequent log switches
+b. Recommended to have big size Redo for Heavy DML Performing DBs.
+c  Reduce Frequent archive generation.
+
+POA
+=======
+
+1. Check Redo logs 
+=========================
+
+col REDO_FILE_NAME for a45
+set lines 200 pages 2000
+
+select a.group#,
+a.thread#,
+a.sequence#,
+a.archived,
+a.status,
+b.member as redo_file_name,
+(a.bytes/1024/1024) as SIZE_MB
+from v$log a
+JOIN v$logfile b ON a.group#=b.group#
+order by a.group# ASC;
+
+2. Add new Redo Groups
+===========================
+
+alter database add logfile group 4 ('D:\ORADATA\ORA11G\REDO04.LOG','D:\ORADATA\ORA11G\REDO04a.LOG') size 200M;
+alter database add logfile group 5 ('D:\ORADATA\ORA11G\REDO05.LOG','D:\ORADATA\ORA11G\REDO05a.LOG') size 200M;
+alter database add logfile group 6 ('D:\ORADATA\ORA11G\REDO06.LOG','D:\ORADATA\ORA11G\REDO06a.LOG') size 200M;
+
+
+3. Check Redo logs 
+=========================
+
+select a.group#,
+a.thread#,
+a.sequence#,
+a.archived,
+a.status,
+b.member as redo_file_name,
+(a.bytes/1024/1024) as SIZE_MB
+from v$log a
+JOIN v$logfile b ON a.group#=b.group#
+order by a.group# ASC;
+
+
+
+4. Drop Old Redo logs 
+=========================
+
+Note : Before Droping Redo Logs , Need to Switch log files so that they become INACTIVE and Oracle allow to drop them.
+
+alter system switch logfile;
+alter system checkpoint;
+
+alter database drop logfile group 1;
+alter database drop logfile group 2;
+alter database drop logfile group 3;
+
+
+5. Check Redo logs 
+=========================
+
+select a.group#,
+a.thread#,
+a.sequence#,
+a.archived,
+a.status,
+b.member as redo_file_name,
+(a.bytes/1024/1024) as SIZE_MB
+from v$log a
+JOIN v$logfile b ON a.group#=b.group#
+order by a.group# ASC;
+
+6. Cleanup Files Physically from Hard Drive
+============================================
+
+ho del /f /q D:\ORADATA\ORA11G\REDO01.LOG
+ho del /f /q D:\ORADATA\ORA11G\REDO01A.LOG
+ho del /f /q D:\ORADATA\ORA11G\REDO02.LOG
+ho del /f /q D:\ORADATA\ORA11G\REDO02A.LOG
+ho del /f /q D:\ORADATA\ORA11G\REDO03.LOG
+ho del /f /q D:\ORADATA\ORA11G\REDO03A.LOG
