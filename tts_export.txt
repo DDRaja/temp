@@ -1,0 +1,120 @@
+SQL>  select name from v$datafile;
+
+NAME
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/u02/oradata/test11g/system01.dbf
+/u02/oradata/test11g/sysaux01.dbf
+/u02/oradata/test11g/undotbs01.dbf
+/u02/oradata/test11g/users01.dbf
+/u02/oradata/TEST11G/datafile/o1_mf_apex_lr076587_.dbf
+/u02/oradata/TEST11G/datafile/o1_mf_raja_lr07vfhc_.dbf
+/u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8p3vp7_.dbf
+/u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8p5nvl_.dbf
+/u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8p5qpq_.dbf
+
+9 rows selected.
+
+
+SQL>  select file_id ,file_name,tablespace_name from dba_data_files;
+
+ 
+   FILE_ID FILE_NAME                                                                         TABLESPACE_NAME
+---------- --------------------------------------------------------------------------------- ------------------------------
+         4 /u02/oradata/test11g/users01.dbf                                                  USERS
+         3 /u02/oradata/test11g/undotbs01.dbf                                                UNDOTBS1
+         2 /u02/oradata/test11g/sysaux01.dbf                                                 SYSAUX
+         1 /u02/oradata/test11g/system01.dbf                                                 SYSTEM
+         5 /u02/oradata/TEST11G/datafile/o1_mf_apex_lr076587_.dbf                            APEX
+         6 /u02/oradata/TEST11G/datafile/o1_mf_raja_lr07vfhc_.dbf                            RAJA
+         7 /u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8p3vp7_.dbf                        TTS_TESTT
+         8 /u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8p5nvl_.dbf                        TTS_TESTT
+         9 /u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8p5qpq_.dbf                        TTS_TESTT
+
+
+9 rows selected.
+
+SQL> create user tts99 identified by tts99 default tablespace tts_testt;
+
+User created.
+
+SQL> alter user tts99  quota unlimited on tts_testt;
+
+User altered.
+
+SQL> create table tts99.tts999 as select * from dba_objects;
+
+Table created.
+
+SQL> select count(*) from tts99.tts999;
+
+  COUNT(*)
+----------
+     83480
+select owner,table_name,tablespace_name from dba_tables where table_name='TTS999';
+OWNER                          TABLE_NAME                     TABLESPACE_NAME
+------------------------------ ------------------------------ ------------------------------
+TTS99                          TTS999                         TTS_TEST
+
+
+-------------------------------------------------------------------------------------------------------------
+
+cat 01_tbs_readonly.sql
+set echo on
+set feedback on
+spool 01_tbsreadonly.log
+ALTER TABLESPACE tts_testt READ ONLY;
+spool off;
+
+
+select tablespace_name,contents,status from dba_tablespaces where CONTENTS like 'PERMANENT' and TABLESPACE_NAME not in  ('SYSTEM','SYSAUX');
+
+EXECUTE DBMS_TTS.TRANSPORT_SET_CHECK('tts_testt',TRUE);
+SET lines 200;
+SELECT * FROM TRANSPORT_SET_VIOLATIONS;
+
+
+
+CREATE OR REPLACE DIRECTORY DATA_PUMP_DIR AS '/u02/backups';
+GRANT READ, WRITE ON DIRECTORY SYS.DATA_PUMP_DIR TO EXP_FULL_DATABASE;
+GRANT READ, WRITE ON DIRECTORY SYS.DATA_PUMP_DIR TO IMP_FULL_DATABASE;
+GRANT READ, WRITE ON DIRECTORY SYS.DATA_PUMP_DIR TO SYSTEM;
+SELECT owner, directory_name, directory_path FROM dba_directories WHERE directory_name='DATA_PUMP_DIR';
+
+cat 02_transport_tbs.par
+userid = "/as sysdba"
+dumpfile=transport_tts.dmp
+exclude=table_statistics
+exclude=index_statistics
+directory = DATA_PUMP_DIR
+logfile = transport_tts.log
+TRANSPORT_TABLESPACES=tts_testt
+TRANSPORT_FULL_CHECK=N
+
+Datafiles required for transportable tablespace TTS_TEST:
+  /u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8kx8cy_.dbf
+  /u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8kzkqt_.dbf
+  /u02/oradata/TEST11G/datafile/o1_mf_tts_test_lr8l033g_.dbf
+Job "SYS"."SYS_EXPORT_TRANSPORTABLE_01" successfully completed at Thu Dec 21 14:38:02 2023 elapsed 0 00:00:24
+
+
+
+run
+{
+ copy datafile 7 to '/u02/tts_1.dbf';
+ copy datafile 8 to '/u02/tts_2.dbf';
+ copy datafile 9 to '/u02/tts_3.dbf';
+}
+
+----------------
+
+restore
+
+
+cat 03_transport_c2bp.par
+userid = "/as sysdba"
+dumpfile=transport_tts.dmp
+directory = DATA_PUMP_DIR
+logfile = transport_tts_FMO.log
+TRANSPORT_DATAFILES='/u02/tts_1.dbf'
+TRANSPORT_DATAFILES='/u02/tts_2.dbf'
+TRANSPORT_DATAFILES='/u02/tts_3.dbf'
