@@ -1,0 +1,49 @@
+select owner,table_name,round(((blocks*8/1024)),2)||'MB' "TOTAL_SIZE",
+round((num_rows*avg_row_len/1024/1024),2)||'MB' "ACTUAL_SIZE", round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2) ||'MB' "FRAGMENTED_SPACE",
+round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2) *100 /round(((blocks*8/1024)),2)  Percentage_Fragmented
+from dba_tables dt
+where owner not in ('SYSTEM','SYS','XDB','EXFSYS','ORSYS','MDSYS','OLAPSYS','SYSMAN','OUTLN','DBSNMP','TSMSYS','WMSYS','CTXSYS','DMSYS','ORDSYS')
+
+and cluster_name is null
+
+and not exists (select 1 from dba_tab_cols dc WHERE  dc.data_Type IN ('CLOB', 'LOB', 'BLOB') and dt.owner=dc.owner and dt.table_name=dc.table_name)
+
+and round(((blocks*8/1024)),2) > 0
+
+and  round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2) > 0
+
+and round((num_rows*avg_row_len/1024/1024),2) > 0
+
+and round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2)  >= 1024
+
+and round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2) *100 /round(((blocks*8/1024)),2) > 30
+
+union
+
+select owner,table_name,round(((blocks*8/1024)),2)||'MB' "TOTAL_SIZE",
+
+round((num_rows*avg_row_len/1024/1024),2)||'MB' "ACTUAL_SIZE", round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2) ||'MB' "FRAGMENTED_SPACE",
+
+null
+
+from dba_tables dt
+
+where owner not in ('SYSTEM','SYS','XDB','EXFSYS','ORSYS','MDSYS','OLAPSYS','SYSMAN','OUTLN','DBSNMP','TSMSYS','WMSYS','CTXSYS','DMSYS','ORDSYS')
+
+and cluster_name is null
+
+and not exists (select 1 from dba_tab_cols dc WHERE  dc.data_Type IN ('CLOB', 'LOB', 'BLOB') and dt.owner=dc.owner and dt.table_name=dc.table_name)
+
+and round(((blocks*8/1024)),2) <= 0
+
+and  round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2) <= 0
+
+and round((num_rows*avg_row_len/1024/1024),2) <= 0
+
+and round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2)  >= 1024
+
+and round(((blocks*8/1024)-(num_rows*avg_row_len/1024/1024)),2) *100 /round(((blocks*8/1024)),2) > 30
+
+ORDER BY Percentage_Fragmented desc;
+
+spool off
