@@ -1,0 +1,26 @@
+*.audit_file_dest='/u01/app/oracle/admin/SWLFI/adump'
+*.audit_trail='DB'
+*.background_dump_dest='/u01/app/oracle/diag/rdbms/SWLFI/SWLFI/trace'#Deprecate parameter
+*.compatible='11.2.0.4.0'
+*.control_files='/u02/oradata/SWLFI/control01.ctl','/u01/app/oracle/fast_recovery_area/SWLFI/control02.ctl'#Restore Controlfile
+*.core_dump_dest='/u01/app/oracle/diag/rdbms/SWLFI/SWLFI/cdump'
+*.db_block_size=8192
+*.db_create_file_dest='/u02/oradata/SWLFI'
+*.db_domain=''
+*.db_file_name_convert='/u02/oradata/dd11g/','/u02/oradata/SWLFI/','/u02/oradata/DD11g/','/u02/oradata/SWLFI/'
+*.db_name=dd11g
+*.db_recovery_file_dest='/u01/app/oracle/fast_recovery_area'
+*.db_recovery_file_dest_size=4182M
+*.db_unique_name=swlfi
+*.diagnostic_dest='/u01/app/oracle'
+*.local_listener='LISTENER'
+*.log_buffer=8740864# log buffer update
+*.log_file_name_convert='/u02/oradata/dd11g/','/u02/oradata/SWLFI/'
+*.open_cursors=300
+*.pga_aggregate_target=384M
+*.processes=150
+*.result_cache_max_size=5920K
+*.sga_target=1152M
+*.skip_unusable_indexes=TRUE
+*.undo_tablespace='UNDOTBS1'
+
