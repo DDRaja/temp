@@ -1,0 +1,369 @@
+AVSCP 
+
+Login to g9u1753c.houston.hpecorp.net 
+
+sudo su - oracle 
+
+. oraenv 
+AVSCP1 
+
+select name,open_mode,database_role from v$database; 
+
+select force_logging from v$database; 
+
+archive log list 
+
+show parameter pfile 
+
+ALTER SYSTEM SET LOG_ARCHIVE_CONFIG='DG_CONFIG=(AVSCP,AVSCPS)'; 
+show parameter LOG_ARCHIVE_CONFIG 
+
+alter system set FAL_SERVER= AVSCPS; 
+alter system set FAL_CLIENT=AVSCP; 
+show parameter FAL 
+
+ALTER SYSTEM SET STANDBY_FILE_MANAGEMENT=AUTO scope=both; 
+show parameter STANDBY_FILE_MANAGEMENT 
+
+ALTER SYSTEM SET LOG_ARCHIVE_DEST_2='SERVICE=AVSCPS NOAFFIRM ASYNC VALID_FOR=(ONLINE_LOGFILES,PRIMARY_ROLE) DB_UNIQUE_NAME=AVSCPS'; 
+
+
+SQL> Set long 999999 
+SQL>  SELECT dbms_metadata.get_ddl('USER','SYS') from dual; 
+
+
+DBMS_METADATA.GET_DDL('USER','SYS') 
+-------------------------------------------------------------------------------- 
+
+   ALTER USER "SYS" IDENTIFIED BY VALUES 'S:1818928D1DFA9BF36F77243708FC41D39A78 
+3E0D88820A7A23387EEE42F4;67DC1E7B7C7E14AC' 
+      TEMPORARY TABLESPACE "TEMP" 
+      PROFILE "HP_GDBA_SERVICE" 
+
+
+SQL> alter user sys identified by avscp_mig; 
+
+User altered. 
+
+SQL> select name from v$datafile; 
+
+
+NAME 
+---------------------------------------------------------------------------------------------------- 
+/u06/oradata/AVSCP/AVSCPsystem_01.dbf 
+/u06/oradata/AVSCP/AVSCPsysaux_01.dbf 
+/u06/oradata/AVSCP/AVSCPundo_01.dbf 
+/u06/oradata/AVSCP/AVSCPusers_01.dbf 
+/u06/oradata/AVSCP/AVSCPundo_02.dbf 
+/u06/oradata/AVSCP/AVSCPas_data_01_01.dbf 
+/u06/oradata/AVSCP/AVSCPas_data_02_01.dbf 
+/u06/oradata/AVSCP/AVSCPas_indx_01_01.dbf 
+/u06/oradata/AVSCP/AVSCPas_indx_02_01.dbf 
+/u06/oradata/AVSCP/AVSCPas_data_01_02.dbf 
+
+10 rows selected. 
+
+
+select member from v$logfile; 
+
+
+MEMBER 
+---------------------------------------------------------------------------------------------------- 
+/u06/origlog/AVSCP/AVSCPredo_t1_g4_m1.dbf 
+/u06/mirrlog/AVSCP/AVSCPredo_t1_g4_m2.dbf 
+/u06/origlog/AVSCP/AVSCPredo_t1_g3_m1.dbf 
+/u06/mirrlog/AVSCP/AVSCPredo_t1_g3_m2.dbf 
+/u06/origlog/AVSCP/AVSCPredo_t1_g2_m1.dbf 
+/u06/mirrlog/AVSCP/AVSCPredo_t1_g2_m2.dbf 
+/u06/origlog/AVSCP/AVSCPredo_t1_g1_m1.dbf 
+/u06/mirrlog/AVSCP/AVSCPredo_t1_g1_m2.dbf 
+/u06/origlog/AVSCP/AVSCPredo_t2_g5_m1.dbf 
+/u06/mirrlog/AVSCP/AVSCPredo_t2_g5_m2.dbf 
+/u06/origlog/AVSCP/AVSCPredo_t2_g7_m1.dbf 
+/u06/mirrlog/AVSCP/AVSCPredo_t2_g7_m2.dbf 
+/u06/origlog/AVSCP/AVSCPredo_t2_g8_m1.dbf 
+/u06/mirrlog/AVSCP/AVSCPredo_t2_g8_m2.dbf 
+/u06/origlog/AVSCP/AVSCPredo_t2_g6_m1.dbf 
+/u06/mirrlog/AVSCP/AVSCPredo_t2_g6_m2.dbf 
+
+16 rows selected. 
+
+scp dasaradh@g9u1753c.houston.hpecorp.net:/u01/app/oracle/product/11.2.0/db_2/dbs/orapwAVSCP1 /tmp/. 
+pfile 
+
+AVSCP = 
+  (DESCRIPTION = 
+    (SDU = 32768) 
+    (ADDRESS_LIST = 
+      (ADDRESS = (PROTOCOL = TCP)(Host = gcu91753.houston.hpecorp.net)(Port = 1526)) 
+    ) 
+    (CONNECT_DATA = 
+      (SERVICE_NAME = AVSCP) 
+      (INSTANCE_NAME = AVSCP1) 
+    ) 
+  ) 
+
+AVSCPS = 
+    (DESCRIPTION = 
+    (SDU = 32768) 
+    (enable = broken) 
+    (LOAD_BALANCE = yes) 
+    (ADDRESS=(PROTOCOL=tcp)(HOST= 10.87.190.22)(PORT=1523)) 
+    (CONNECT_DATA = 
+      (SERVICE_NAME = AVSCPS)(UR = A) 
+    ) 
+  ) 
+
+tnsping AVSCP 
+tnsping AVSCPS 
+
+Conversion server: 
+
+ORACLE_HOSTNAME=p1ug12259.dc01.its.hpecorp.net; export ORACLE_HOSTNAME 
+ORACLE_UNQNAME=AVSCPS; export ORACLE_UNQNAME 
+ORACLE_HOME=$ORACLE_BASE/product/11.2.0.3/db_2; export ORACLE_HOME 
+ORACLE_SID=AVSCPS; export ORACLE_SID 
+
+mkdir -p /oracle/AVSCPS/adump 
+mkdir -p /oracle/AVSCPS/data/ 
+mkdir -p /oraarch/AVSCPS/recovery/ 
+mkdir -p /oracle/AVSCPS/ 
+mkdir -p /oraarch/AVSCPS/arch 
+mkdir -p /oraarch/AVSCPS/origlog/ 
+mkdir -p /oraarch/AVSCPS/mirrlog/ 
+
+
+cat cr_dir.sql 
+spool create_dir.log 
+CREATE OR REPLACE DIRECTORY DATA_PUMP_DIR AS '/oracle/UST/AVSCP/backup'; 
+GRANT READ, WRITE ON DIRECTORY SYS.DATA_PUMP_DIR TO EXP_FULL_DATABASE; 
+GRANT READ, WRITE ON DIRECTORY SYS.DATA_PUMP_DIR TO IMP_FULL_DATABASE; 
+GRANT READ, WRITE ON DIRECTORY SYS.DATA_PUMP_DIR TO SYSTEM; 
+SELECT owner, directory_name, directory_path FROM dba_directories WHERE directory_name='DATA_PUMP_DIR'; 
+spool off  
+
+
+cat 01_tosnapshot.sql 
+alter database recover managed standby database cancel; 
+alter database convert to snapshot standby; 
+select name,open_mode from v$database; 
+alter database open; 
+select name,open_mode from v$database; 
+
+
+cat 02_tbsronly.sql 
+alter tablespace USERS read only; 
+alter tablespace AS_DATA_01 read only; 
+alter tablespace AS_DATA_02 read only; 
+alter tablespace AS_INDX_01 read only; 
+alter tablespace AS_INDX_02 read only; 
+
+USERS 
+AS_DATA_01 
+AS_DATA_02 
+AS_INDX_01 
+AS_INDX_02 
+
+
+EXECUTE DBMS_TTS.TRANSPORT_SET_CHECK('USERS,AS_DATA_01,AS_DATA_02,AS_INDX_01,AS_INDX_02',TRUE); 
+SET lines 200; 
+SELECT * FROM TRANSPORT_SET_VIOLATIONS; 
+
+
+
+cat 03_metadata_user.par 
+userid = "/as sysdba" 
+dumpfile=metadata_users_avscp.dmp 
+content=metadata_only 
+full=y 
+exclude=user,role,role_grant,profile 
+exclude=table_statistics 
+exclude=index_statistics 
+directory = DATA_PUMP_DIR 
+logfile = metadata_avscp.log 
+
+
+cat 04_userole.par 
+userid = "/as sysdba" 
+dumpfile=all_user_role_avscp.dmp 
+full=y 
+include=user,role,role_grant,profile 
+directory = DATA_PUMP_DIR 
+logfile = user_role_avscp.log 
+
+
+
+
+cat 05_transport_usr.par 
+userid = "/as sysdba" 
+dumpfile=transport_avscp.dmp 
+exclude=table_statistics 
+exclude=index_statistics 
+directory = DATA_PUMP_DIR 
+logfile = transport_avscp.log 
+TRANSPORT_TABLESPACES=USERS,AS_DATA_01,AS_DATA_02,AS_INDX_01,AS_INDX_02 
+TRANSPORT_FULL_CHECK=N 
+
+
+Datafiles required for transportable tablespace AS_DATA_01: 
+  /oracle/AVSCPS/data/AVSCPas_data_01_01.dbf 
+  /oracle/AVSCPS/data/AVSCPas_data_01_02.dbf 
+Datafiles required for transportable tablespace AS_DATA_02: 
+  /oracle/AVSCPS/data/AVSCPas_data_02_01.dbf 
+Datafiles required for transportable tablespace AS_INDX_01: 
+  /oracle/AVSCPS/data/AVSCPas_indx_01_01.dbf 
+Datafiles required for transportable tablespace AS_INDX_02: 
+  /oracle/AVSCPS/data/AVSCPas_indx_02_01.dbf 
+Datafiles required for transportable tablespace USERS: 
+  /oracle/AVSCPS/data/AVSCPusers_01.dbf 
+
+
+
+ cat 06_convert.sh 
+rman target / cmdfile=convert_06.cmd 
+
+ cat convert_06.cmd 
+run 
+{ 
+ convert  
+  tablespace USERS,AS_DATA_01,AS_DATA_02,AS_INDX_01,AS_INDX_02 
+   to  platform 'Linux x86 64-bit' 
+   format '/oracle/UST/AVSCP/backup/%N_%f.dbf' 
+   parallelism 8; 
+   } 
+
+
+converted datafile=/oracle/UST/AVSCP/backup/USERS_4.dbf 
+converted datafile=/oracle/UST/AVSCP/backup/AS_INDX_02_9.dbf 
+converted datafile=/oracle/UST/AVSCP/backup/AS_DATA_02_7.dbf 
+converted datafile=/oracle/UST/AVSCP/backup/AS_INDX_01_8.dbf 
+converted datafile=/oracle/UST/AVSCP/backup/AS_DATA_01_10.dbf 
+converted datafile=/oracle/UST/AVSCP/backup/AS_DATA_01_6.dbf 
+
+FMO 
+
+sudo mount -t nfs -o vers=4 p2lb50099.dc02.its.hpecorp.net:/export/share /sfs 
+
+cat cr_dir.sql 
+spool create_dir.log 
+CREATE OR REPLACE DIRECTORY DPUMP_UST AS '/sfs/UST/FMO/UST/files/avscp'; 
+GRANT READ, WRITE ON DIRECTORY SYS.DPUMP_UST TO EXP_FULL_DATABASE; 
+GRANT READ, WRITE ON DIRECTORY SYS.DPUMP_UST TO IMP_FULL_DATABASE; 
+GRANT READ, WRITE ON DIRECTORY SYS.DPUMP_UST TO SYSTEM; 
+SELECT owner, directory_name, directory_path FROM dba_directories WHERE directory_name='DPUMP_UST'; 
+spool off 
+
+cat CpToASM.sh 
+#!/usr/bin/ksh 
+ls /sfs/UST/FMO/UST/files/avscp/*.dbf | while read FILE 
+do 
+FILE1=`ls $FILE| xargs -n1 -I{} basename "{}"` 
+  echo $FILE 
+  echo $FILE1 
+  asmcmd cp $FILE +AVCSP_DATA/AVCSP/DATAFILE/$FILE1 
+  echo $FILE 'Copy Done to ' $FILE1 
+done 
+echo "All Done" 
+
+
+cat 01_usr_role_AVSCP.par 
+userid = "/as sysdba" 
+dumpfile=all_user_role_avscp.dmp 
+directory = DPUMP_UST 
+remap_tablespace=USERS:SYSTEM,AS_DATA_01:SYSTEM,AS_DATA_02:SYSTEM,AS_INDX_01:SYSTEM,AS_INDX_02:SYSTEM 
+FULL=Y 
+logfile = imp_USERS_ROLE_FMO_AVSCP.log 
+
+
+
+ cat 02_transport_AVSCP.par 
+userid = "/as sysdba" 
+dumpfile=transport_avscp.dmp 
+directory = DPUMP_UST 
+logfile = transport_AVSCP_FMO.log 
+TRANSPORT_DATAFILES='+AVCSP_DATA/AVCSP/DATAFILE/USERS_4.dbf' 
+TRANSPORT_DATAFILES='+AVCSP_DATA/AVCSP/DATAFILE/AS_INDX_02_9.dbf' 
+TRANSPORT_DATAFILES='+AVCSP_DATA/AVCSP/DATAFILE/AS_DATA_02_7.dbf' 
+TRANSPORT_DATAFILES='+AVCSP_DATA/AVCSP/DATAFILE/AS_INDX_01_8.dbf' 
+TRANSPORT_DATAFILES='+AVCSP_DATA/AVCSP/DATAFILE/AS_DATA_01_10.dbf' 
+TRANSPORT_DATAFILES='+AVCSP_DATA/AVCSP/DATAFILE/AS_DATA_01_6.dbf' 
+
+cat 03_metadata_users_AVSCP.par 
+userid="/ as sysdba" 
+dumpfile=metadata_users_avscp.dmp 
+directory = DPUMP_UST 
+logfile = metadata_full_AVSCP_FMO.log 
+full=y 
+
+
+Post migration steps 
+
+
+alter user GDBA_VIDUR account lock; 
+alter user GDBA_SHIREYK_ADMIN account lock; 
+alter user CLOUD_ADMIN account lock; 
+alter user  ASIAPACIFIC_CRUZARV account lock; 
+alter user  ASIAPACIFIC_HERADRIA account lock; 
+alter user  ASIAPACIFIC_RAMOSLEO account lock; 
+alter user  AMERICAS_ALCANTJO account lock; 
+alter user  AMERICAS_LIPATADX account lock; 
+alter user  AMERICAS_PASTURAN account lock; 
+alter user  AMERICAS_CAPIRALD account lock; 
+alter user  AMERICAS_STAANA account lock; 
+alter user GDBA_AYAVOOSU  account lock; 
+
+
+SQL> alter user GDBA_VIDUR account lock; 
+
+User altered. 
+
+SQL> alter user GDBA_SHIREYK_ADMIN account lock; 
+
+User altered. 
+
+SQL> 
+SQL> alter user CLOUD_ADMIN account lock; 
+
+User altered. 
+
+SQL> alter user  ASIAPACIFIC_CRUZARV account lock; 
+
+User altered. 
+
+SQL> alter user  ASIAPACIFIC_HERADRIA account lock; 
+
+User altered. 
+
+SQL> alter user  ASIAPACIFIC_RAMOSLEO account lock; 
+
+User altered. 
+
+SQL> 
+SQL> alter user  AMERICAS_ALCANTJO account lock; 
+
+User altered. 
+
+SQL> alter user  AMERICAS_LIPATADX account lock; 
+
+User altered. 
+
+SQL> alter user  AMERICAS_PASTURAN account lock; 
+
+User altered. 
+
+SQL> alter user  AMERICAS_CAPIRALD account lock; 
+
+User altered. 
+
+SQL> alter user  AMERICAS_STAANA account lock; 
+
+User altered. 
+
+SQL> alter user GDBA_AYAVOOSU  account lock; 
+
+User altered. 
+
+SQL> alter user BOITIZON account lock; 
+
+User altered. 
+
